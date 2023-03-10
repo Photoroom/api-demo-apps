@@ -2,6 +2,7 @@
 //  Copyright © 2023 Artizans. All rights reserved.
 //
 
+import CoreImage
 import Foundation
 import UIKit
 
@@ -38,7 +39,10 @@ public func removeBackground(
     request.httpMethod = "POST"
     request.timeoutInterval = 30.0
 
-    guard let media = Media(withImage: image, forKey: "image_file") else {
+    let scale = image.scaled(maxDimensions: CGSize(width: 1000, height: 1000))
+    let scaledImage = image.scaled(by: scale)
+
+    guard let media = Media(withImage: scaledImage, forKey: "image_file") else {
         completionHandler(.failure(.invalidData))
         return
     }
@@ -136,5 +140,115 @@ private extension Data {
     mutating func appendString(_ string: String) {
         let data = string.data(using: .utf8)
         append(data!)
+    }
+}
+
+private extension UIImage {
+    func scaled(by scale: CGFloat) -> UIImage {
+        guard let scaledCIImage = CIImage(image: self)?.scaled(by: scale),
+              let scaledCGImage = scaledCIImage.toCGImage() else {
+            return self
+        }
+        return UIImage(cgImage: scaledCGImage)
+    }
+
+    func scaled(maxDimensions: CGSize) -> CGFloat {
+        let scale = min(maxDimensions.width / size.width, maxDimensions.height / size.height)
+        if scale >= 1 {
+            return 1
+        }
+        return scale
+    }
+}
+
+private extension CIImage {
+    func scaled(by scale: CGFloat) -> CIImage {
+        guard scale < 1 else { return self }
+        return applyingFilter(
+            "CILanczosScaleTransform",
+            parameters: [
+                kCIInputScaleKey: Float(scale),
+                kCIInputAspectRatioKey: 1,
+            ]
+        )
+    }
+
+    func toCGImage(monochrome: Bool = false) -> CGImage? {
+        let colorSpaceName: CFString
+        let format: CIFormat
+        let image: CIImage
+        let bpp: Int
+        let bitmapInfo: UInt32
+        if monochrome {
+            format = .L8
+            colorSpaceName = CGColorSpace.linearGray
+            image = premultiplyingAlpha()
+            bpp = 1
+            bitmapInfo = CGImageAlphaInfo.none.rawValue
+        } else {
+            format = .BGRA8
+            colorSpaceName = CGColorSpace.sRGB
+            image = self
+            bpp = 4
+            bitmapInfo = CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
+        }
+
+        let w = Int(ceil(extent.width))
+        let h = Int(ceil(extent.height))
+        // Requiring a row alignment on 16 bytes boundaries for extra safety
+        let bpr = 16 * ((w * bpp + 15) / 16)
+
+        guard
+            let bitmapContext = CGContext(
+                data: nil,
+                width: w,
+                height: h,
+                bitsPerComponent: 8,
+                bytesPerRow: bpr,
+                space: CGColorSpace(name: colorSpaceName)!,
+                bitmapInfo: bitmapInfo
+            ),
+            let bitmapData = bitmapContext.data
+        else {
+            return nil
+        }
+
+        let destination = CIRenderDestination(
+            bitmapData: bitmapData,
+            width: w,
+            height: h,
+            bytesPerRow: bpr,
+            format: format
+        )
+        destination.colorSpace = CGColorSpace(name: colorSpaceName)
+
+        guard
+            let task = try? CIContextWrapper().context.startTask(
+                toRender: image,
+                from: extent,
+                to: destination,
+                at: .zero
+            ),
+            (try? task.waitUntilCompleted()) != nil
+        else {
+            return nil
+        }
+
+        return bitmapContext.makeImage()
+    }
+}
+
+private final class CIContextWrapper {
+    let context = CIContextWrapper.context
+
+    private static let context = CIContext(
+        options: [
+            .useSoftwareRenderer: false,
+            .cacheIntermediates: false,
+        ]
+    )
+
+    deinit {
+        context.clearCaches()
     }
 }
