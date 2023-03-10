@@ -69,7 +69,7 @@ struct PhotoButton_Previews: PreviewProvider {
     static var previews: some View {
         Group {
             PhotoButton(photoNumber: 1, photo: nil)
-            PhotoButton(photoNumber: 2, photo: UIImage(named: "photo"))
+            PhotoButton(photoNumber: 2, photo: UIImage(named: "photo_a"))
         }
         .frame(width: 160, height: 160)
     }
