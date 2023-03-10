@@ -16,6 +16,7 @@
 		BFF7751029BA3F3400BACC7E /* ImagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFF7750F29BA3F3400BACC7E /* ImagePicker.swift */; };
 		BFF7751229BA40FA00BACC7E /* Collection+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFF7751129BA40FA00BACC7E /* Collection+Extension.swift */; };
 		BFF7751429BB2D7100BACC7E /* FirstView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFF7751329BB2D7100BACC7E /* FirstView.swift */; };
+		BFF7751629BB814C00BACC7E /* RemoveBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFF7751529BB814C00BACC7E /* RemoveBackground.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -29,6 +30,7 @@
 		BFF7750F29BA3F3400BACC7E /* ImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePicker.swift; sourceTree = "<group>"; };
 		BFF7751129BA40FA00BACC7E /* Collection+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Collection+Extension.swift"; sourceTree = "<group>"; };
 		BFF7751329BB2D7100BACC7E /* FirstView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstView.swift; sourceTree = "<group>"; };
+		BFF7751529BB814C00BACC7E /* RemoveBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoveBackground.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -68,6 +70,7 @@
 				BFF7750B29BA381200BACC7E /* AddPhotosButton.swift */,
 				BFF7750D29BA393200BACC7E /* PhotoButton.swift */,
 				BFF7751129BA40FA00BACC7E /* Collection+Extension.swift */,
+				BFF7751529BB814C00BACC7E /* RemoveBackground.swift */,
 				BFF7750129BA357C00BACC7E /* Assets.xcassets */,
 				BFF7750329BA357C00BACC7E /* Preview Content */,
 			);
@@ -159,6 +162,7 @@
 				BFF7751029BA3F3400BACC7E /* ImagePicker.swift in Sources */,
 				BFF7750C29BA381200BACC7E /* AddPhotosButton.swift in Sources */,
 				BFF7750E29BA393200BACC7E /* PhotoButton.swift in Sources */,
+				BFF7751629BB814C00BACC7E /* RemoveBackground.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

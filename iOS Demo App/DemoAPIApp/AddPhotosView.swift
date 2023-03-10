@@ -70,6 +70,10 @@ struct AddPhotosView: View {
         .onChange(of: newPhoto) { newPhoto in
             if let newPhoto {
                 photos.append(newPhoto)
+//                Task { @MainActor in
+//                    let segmentedPhoto = try await removeBackground(of: newPhoto)
+//                    photos.append(segmentedPhoto)
+//                }
             }
         }
     }

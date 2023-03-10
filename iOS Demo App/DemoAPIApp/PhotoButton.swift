@@ -51,6 +51,7 @@ struct PhotoButton: View {
                     Image(uiImage: photo)
                         .resizable()
                         .scaledToFill()
+                        .background(Color.white)
                 } else {
                     RoundedRectangle(cornerRadius: 12)
                         .stroke(
