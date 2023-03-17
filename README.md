@@ -10,4 +10,4 @@ We would love you to contribute to our **demo apps**, check the [CONTRIBUTING](h
 
 ## License
 
-Our **demo apps** are available under the MIT license. See the [LICENSE](https://github.com/PhotoRoom/api-demo-apps/blob/master/LICENSE) file for more info.
+Our **demo apps** are available under the MIT license. See the [LICENSE](https://github.com/PhotoRoom/api-demo-apps/blob/master/LICENSE.txt) file for more info.
