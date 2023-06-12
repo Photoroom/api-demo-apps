@@ -1,0 +1,49 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selfie Background Remover</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com"> 
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> 
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <h1>Selfie Background Remover</h1>
+    <form id="upload-form">
+        <input type="text" id="api-key" placeholder="Enter your PhotoRoom API key here...">
+        <input type="file" id="image-input" accept="image/*">
+        <label for="overlay-text" style="display: block; margin-bottom: 0.5rem;">This person is</label>
+        <input type="text" id="overlay-text" placeholder="Enter text overlay here..." maxlength="46">
+        <label for="scale-range" style="display: block; margin-bottom: 0.5rem;">Scale</label>
+        <input type="range" id="scale-range" min="0.1" max="3" step="0.01" value="1" style="margin-bottom: 1rem;">
+        <label for="rotation-range" style="display: block; margin-bottom: 0.5rem;">Rotation (degrees)</label>
+        <input type="range" id="rotation-range" min="-180" max="180" step="1" value="0" style="margin-bottom: 1rem;">
+        <div class="arrow-buttons">
+            <div id="arrow-buttons-container">
+                <div id="arrow-up-container">
+                    <button id="arrow-up" class="arrow-button">&uarr;</button>
+                </div>
+                <div id="arrow-middle-container">
+                    <button id="arrow-left" class="arrow-button">&larr;</button>
+                    <button id="arrow-down" class="arrow-button">&darr;</button>
+                    <button id="arrow-right" class="arrow-button">&rarr;</button>
+                </div>
+            </div>
+        </div>
+        <button type="submit">Upload</button>
+    </form>
+    <div id="loader" style="display: none;">
+        <div class="spinner"></div>
+    </div>
+    <div id="result-container">
+        <canvas id="result-canvas"></canvas>
+        <a id="download-button" href="#" download="result.png" style="display: none;">
+            <button>Download</button>
+        </a>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
