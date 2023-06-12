@@ -131,8 +131,8 @@ async function removeBackground() {
 }
 
 async function drawImageWithOverlay(image, text, scaleFactor = 1, rotation = 0) {
-    const background = await loadLocalImage("background.png")
-    const overlay = await loadLocalImage("overlay.png")
+    const background = await loadLocalImage("assets/background.png")
+    const overlay = await loadLocalImage("assets/overlay.png")
 
     const newHeight = 1920
     const newWidth = 1080
