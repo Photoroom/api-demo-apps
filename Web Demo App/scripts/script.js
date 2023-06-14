@@ -181,6 +181,7 @@ async function drawImageWithOverlay(image, text, scaleFactor = 1, rotation = 0) 
     const lines = ['This person is ', text]
     let cursorPositionY = 0
 
+    // Iterate over each line of text
     for (const line of lines) {
         const lineWidth = ctx.measureText(line).width
         const words = line.split(" ")
@@ -190,9 +191,11 @@ async function drawImageWithOverlay(image, text, scaleFactor = 1, rotation = 0) 
 
         let cursorPositionX = 0
 
+        // Iterate over each word in the line
         for (let i = 0; i < words.length; i++) {
             const word = words[i]
 
+            // Iterate over each character in the word
             for (let j = 0; j < word.length; j++) {
                 const char = word.charAt(j)
                 const charWidth = ctx.measureText(char).width
