@@ -25,8 +25,7 @@ uploadForm.addEventListener("submit", async (event) => {
     event.preventDefault()
     if (!imageInput.files[0]) return
 
-    const image = await loadImage(imageInput.files[0])
-    segmentedPhoto = await removeBackground(image)
+    segmentedPhoto = await removeBackground()
     updateImage()
 })
 
@@ -134,45 +133,45 @@ async function drawImageWithOverlay(image, text, scaleFactor = 1, rotation = 0) 
     const background = await loadLocalImage("assets/background.png")
     const overlay = await loadLocalImage("assets/overlay.png")
 
-    const newHeight = 1920
-    const newWidth = 1080
+    const canvasHeight = 1920
+    const canvasWidth = 1080
 
-    const scale = Math.min(newWidth / image.width, newHeight / image.height)
+    const scale = Math.min(canvasWidth / image.width, canvasHeight / image.height)
     const scaledWidth = image.width * scale
     const scaledHeight = image.height * scale
 
     const canvas = document.createElement("canvas")
-    canvas.width = newWidth
-    canvas.height = newHeight
+    canvas.width = canvasWidth
+    canvas.height = canvasHeight
     const ctx = canvas.getContext("2d")
 
-    // Draw sky background (replace with desired background)
-    ctx.drawImage(background, 0, 0, newWidth, newHeight)
+    // Draw the background
+    ctx.drawImage(background, 0, 0, canvasWidth, canvasHeight)
 
     // Calculate the new scaled width and height
     const newScaledWidth = scaledWidth * scaleFactor
     const newScaledHeight = scaledHeight * scaleFactor
 
     // Adjust offsetX and offsetY to keep the image centered
-    const newOffsetX = (newWidth - newScaledWidth) / 2
-    const newOffsetY = (newHeight - newScaledHeight) / 2
+    const offsetX = (canvasWidth - newScaledWidth) / 2
+    const offsetY = (canvasHeight - newScaledHeight) / 2
 
     // Draw the centered, scaled, and rotated image with the removed background
     ctx.save()
-    ctx.translate(newWidth / 2, newHeight / 2) // Translate to the center of the canvas
+    ctx.translate(canvasWidth / 2, canvasHeight / 2) // Translate to the center of the canvas
     ctx.rotate(rotation * (Math.PI / 180)) // Convert degrees to radians and rotate the context
-    ctx.translate(-newWidth / 2, -newHeight / 2) // Translate back to the origin
-    ctx.drawImage(image, newOffsetX + userOffsetX, newOffsetY + userOffsetY, newScaledWidth, newScaledHeight)
+    ctx.translate(-canvasWidth / 2, -canvasHeight / 2) // Translate back to the origin
+    ctx.drawImage(image, offsetX + userOffsetX, offsetY + userOffsetY, newScaledWidth, newScaledHeight)
     ctx.restore()
   
-    // Draw overlay on top
-    ctx.drawImage(overlay, 0, 0, newWidth, newHeight)
+    // Draw the overlay on top
+    ctx.drawImage(overlay, 0, 0, canvasWidth, canvasHeight)
 
     // Add text overlay
     const fontSize = 58 // Increased font size
     const curveRadius = 400 // Adjusted curve radius for less curvature
-    const centerX = newWidth / 2
-    const centerY = newHeight / 2 - 300
+    const centerX = canvasWidth / 2
+    const centerY = canvasHeight / 2 - 300
     const whiteSpaceWidth = 15
     const lineHeight = 58
 
