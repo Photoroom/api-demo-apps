@@ -130,8 +130,13 @@ async function removeBackground() {
 }
 
 async function drawImageWithOverlay(image, text, scaleFactor = 1, rotation = 0) {
-    const background = await loadLocalImage("assets/background.png")
-    const overlay = await loadLocalImage("assets/overlay.png")
+    // Get the URLs of the images from the query parameters
+    const params = new URLSearchParams(window.location.search);
+    const backgroundUrl = params.get('background');
+    const overlayUrl = params.get('overlay');
+
+    const background = await loadLocalImage(backgroundUrl || 'assets/background.png')
+    const overlay = await loadLocalImage(overlayUrl || 'assets/overlay.png')
 
     const canvasHeight = 1920
     const canvasWidth = 1080
