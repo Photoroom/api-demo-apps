@@ -1,8 +1,8 @@
-[<img width="80" alt="App Icon" src="https://user-images.githubusercontent.com/5090957/222391109-fabc0f10-968e-48fa-ba0d-6582c33cbacf.png">](https://www.photoroom.com/api)
+[<img width="80" alt="App Icon" src="https://github.com/user-attachments/assets/2adfc796-991d-4e63-a283-c8930fe701a9">](https://www.photoroom.com/api)
 
-# PhotoRoom API Demo Apps
+# Photoroom API Demo Apps
 
-This repository contains the code of demo apps that use the [PhotoRoom API](https://www.photoroom.com/api).
+This repository contains the code of demo apps that use the [Photoroom API](https://www.photoroom.com/api).
 
 ## Contributing
 
