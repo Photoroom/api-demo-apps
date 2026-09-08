@@ -161,9 +161,9 @@ actor CardProcessor {
                           cutout: result.cutout, automaticRatio: result.automaticRatio, aspectRatio: aspectRatio, quarterTurns: turns, originalData: result.originalData, framedOriginal: result.framedOriginal)
     }
 
-    func blurredFinish(_ result: CardResult, apiKey: String) async throws -> FinishedCard {
+    func blurredFinish(_ result: CardResult, apiKey: String, relight: Bool = true) async throws -> FinishedCard {
         let scene = try sceneImage(result)
-        let data = try await photoroom.blurredFinish(image: encode(scene, type: "public.png"), apiKey: apiKey)
+        let data = try await photoroom.blurredFinish(image: encode(scene, type: "public.png"), apiKey: apiKey, relight: relight)
         try Task.checkCancellation()
         guard let source = CGImageSourceCreateWithData(data as CFData, nil),
               let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else { throw PhotoroomError.invalidResponse }

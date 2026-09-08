@@ -4,25 +4,25 @@ A native iPhone app that photographs trading cards, uses a Photoroom foreground 
 
 ## Before and after
 
-Three bundled sample cards processed with the app’s current code: Photoroom mask, perspective correction, and optional background blur with relighting. **Original is on the left**, followed by **Edited · transparent** and **Edited · background blur**. Original and blurred images use the app’s mask-based crop with 5% padding; transparent images retain their alpha channel and tight framing.
+Three bundled sample cards processed with the app’s current code: Photoroom mask, perspective correction, and optional background blur with relighting. **Original is on the left**, followed by **Edited · transparent** and **Edited · background blur + relight**. Original and blurred images use the app’s mask-based crop with 5% padding; transparent images retain their alpha channel and tight framing.
 
 These library samples have no camera calibration, so the examples use the **Standard card** proportion preset (2.5 : 3.5).
 
 ### Charizard
 
-| Original · before | Edited · transparent | Edited · background blur |
+| Original · before | Edited · transparent | Edited · background blur + relight |
 | :---: | :---: | :---: |
 | <img src="docs/examples/charizard-original.jpg" alt="Charizard original photo cropped to the item with padding" width="240"> | <img src="docs/examples/charizard-transparent.png" alt="Charizard with perspective corrected and background removed using the Photoroom mask" width="240"> | <img src="docs/examples/charizard-blurred.jpg" alt="Charizard with perspective corrected, blurred background, and relighting" width="240"> |
 
 ### Mew
 
-| Original · before | Edited · transparent | Edited · background blur |
+| Original · before | Edited · transparent | Edited · background blur + relight |
 | :---: | :---: | :---: |
 | <img src="docs/examples/mew-original.jpg" alt="Mew original photo cropped to the item with padding" width="240"> | <img src="docs/examples/mew-transparent.png" alt="Mew with perspective corrected and background removed using the Photoroom mask" width="240"> | <img src="docs/examples/mew-blurred.jpg" alt="Mew with perspective corrected, blurred background, and relighting" width="240"> |
 
 ### The Rock
 
-| Original · before | Edited · transparent | Edited · background blur |
+| Original · before | Edited · transparent | Edited · background blur + relight |
 | :---: | :---: | :---: |
 | <img src="docs/examples/the-rock-original.jpg" alt="The Rock original photo cropped to the item with padding" width="240"> | <img src="docs/examples/the-rock-transparent.png" alt="The Rock with perspective corrected and background removed using the Photoroom mask" width="240"> | <img src="docs/examples/the-rock-blurred.jpg" alt="The Rock with perspective corrected, blurred background, and relighting" width="240"> |
 
@@ -44,7 +44,7 @@ This runs the app’s processing code on macOS and makes nine Photoroom API call
 5. Tap **Take a photo** and allow camera access. Automatic capture defaults to enabled: keep one flat card fully visible. After a brief aiming period, the app requires two consecutive sharp frames; a steady hold is not required. Use **Auto: Off** or the shutter for manual capture. **Settings → Automatic shutter** and the camera’s Auto toggle share a saved preference that survives app restarts.
 6. Review **Proportions**: calibrated captures default to Automatic. If a reliable estimate is unavailable, select Standard card or enter the actual width and height in the same units before saving. Rotate turns the corrected image clockwise without stretching it.
 
-7. Under **Finish**, keep **Transparent** for PNG, or choose **Background blur** and tap **Apply background blur** for the demo’s Photoroom finish. Preview, save, or share the resulting JPEG. Applying the finish uses two image-edit API calls. Changing proportions or rotation requires applying the finish again; switching between existing transparent and blurred results makes no API calls.
+7. In **Settings → Finish**, choose **Transparent** (the default) or **Background blur**. The choice saves immediately and survives app restarts. For Background blur, **Relight** defaults to On; turn it off to omit `lighting.mode` while retaining the same blur. This toggle is also saved. Once proportions are valid, the result automatically applies your selected finish: a transparent PNG, or a blurred JPEG with optional relighting. Background blur uses two additional image-edit API calls; changes to proportions, rotation, or Relight automatically generate a new finish. Library photos without calibration wait for your proportion choice before applying blur. A failed finish offers Retry and keeps saving/sharing disabled until it succeeds. Switching to Transparent cancels an in-progress finish; a completed blur is reused when switching back with unchanged proportions, rotation, and Relight.
 
 **Choose from library** imports an existing image. **Try a sample card** includes the nine images from the original demo and works in Simulator, where a camera is unavailable. Sample scans also use Photoroom and require your API key. Tap the image preview to open full-screen comparison. Switch between Edited and Original, pinch to zoom, double-tap to zoom/reset, and tap Done to return. The Edited view uses the selected finish, including background blur. Compare Edited/Original, save both the original and corrected image to Photos, or share the corrected image. **Save before & after** saves a padded crop of the original at its native resolution and the selected finish (transparent PNG or blurred JPEG) in the same Photos change transaction. A denied camera or Photos permission leaves the other import/export options available.
 
@@ -68,7 +68,7 @@ The native adaptations are explicit:
 - The app directly calls the same Photoroom `POST https://sdk.photoroom.com/v1/segment` endpoint as `api.ts`, with an `x-api-key` header and multipart `image_file` / `channels=alpha` fields. There is no Apple Vision segmentation or rectangle fallback in the correction pipeline. Vision rectangle detection gates automatic camera capture, and text recognition disambiguates card orientation; Photoroom’s mask still supplies the final correction geometry and background removal.
 - The returned mask is read using the demo’s alpha-versus-luminance detection and thresholds. The full mask is also composited onto the original image as transparency before the perspective warp, removing background around rounded corners.
 - Core Image performs the projective warp locally on both color and alpha. The default export is a transparent card-only PNG. The optional Background blur finish ports the demo’s full-canvas homography warp, retaining the surrounding photo and transparent warp borders. It applies the selected proportions and rotation before upload. Framing matches the demo: preserve the full input canvas, keep the card at the arithmetic mean of the four detected corners, preserve measured area, and shrink only to fit canvas width/height minus two pixels. No additional padding, margin, recentering, or output-size parameters are sent for this finish. After the API returns, the app crops to the mask-derived rectified item bounds with 5% of the longest item edge as padding on each side, clipped to the photo. The selected card ratio intentionally replaces the demo’s fixed ratio.
-- Background blur reuses `api.ts`’s Mercari finish: two `POST https://image-api.photoroom.com/v2/edit` calls. First: `expand.mode=ai.auto`, `referenceBox=originalImage`, `removeBackground=false`. Then upload that expanded image with `background.blur.mode=gaussian`, `background.blur.radius=0.012`, `lighting.mode=ai.preserve-hue-and-saturation`, `removeBackground=false`, `referenceBox=originalImage`, and `export.format=jpeg`. The app previews and exports the returned JPEG.
+- Background blur reuses `api.ts`’s Mercari finish: two `POST https://image-api.photoroom.com/v2/edit` calls. First: `expand.mode=ai.auto`, `referenceBox=originalImage`, `removeBackground=false`. Then upload that expanded image with `background.blur.mode=gaussian`, `background.blur.radius=0.012`, `lighting.mode=ai.preserve-hue-and-saturation`, `removeBackground=false`, `referenceBox=originalImage`, and `export.format=jpeg`. Turning Relight off omits only `lighting.mode`; both requests and all framing/blur parameters stay the same. The app previews and exports the returned JPEG.
 - Photos are uploaded directly to Photoroom for segmentation. Local image processing runs in a dedicated actor. Keys are user-provided, saved in Keychain, and are never bundled or logged.
 - EXIF orientation is normalized before upload and detection. Input is limited to 3,000 pixels on its longest edge, mask analysis to 1,600 pixels, and output to 2,400 pixels on its longest edge.
 - Cancellation cancels the request and prevents stale results. Missing/invalid keys, exhausted credits, rate limits, network failures, and invalid masks produce recoverable errors.

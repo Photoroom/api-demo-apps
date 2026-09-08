@@ -32,7 +32,7 @@ struct PhotoroomClient: Sendable {
     enum FinishStep { case expand, blur }
 
     // Exact Mercari finish parameters from the supplied trading-card demo.
-    static func finishRequest(image: Data, apiKey: String, step: FinishStep,
+    static func finishRequest(image: Data, apiKey: String, step: FinishStep, relight: Bool = true,
                               boundary: String = "CardStraight-\(UUID().uuidString)") throws -> URLRequest {
         let key = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !key.isEmpty, !key.contains("\n"), !key.contains("\r") else { throw PhotoroomError.missingKey }
@@ -41,11 +41,12 @@ struct PhotoroomClient: Sendable {
         request.timeoutInterval = 180
         request.setValue(key, forHTTPHeaderField: "x-api-key")
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-        let fields: [(String, String)] = step == .expand
+        var fields: [(String, String)] = step == .expand
             ? [("referenceBox", "originalImage"), ("removeBackground", "false"), ("expand.mode", "ai.auto")]
             : [("background.blur.mode", "gaussian"), ("background.blur.radius", "0.012"),
                ("lighting.mode", "ai.preserve-hue-and-saturation"), ("removeBackground", "false"),
                ("referenceBox", "originalImage"), ("export.format", "jpeg")]
+        if !relight { fields.removeAll { $0.0 == "lighting.mode" } }
         let filename = step == .expand ? "perspective-corrected-card.png" : "perspective-expanded-card.png"
         var body = Data("--\(boundary)\r\nContent-Disposition: form-data; name=\"imageFile\"; filename=\"\(filename)\"\r\nContent-Type: image/png\r\n\r\n".utf8)
         body.append(image)
@@ -57,10 +58,10 @@ struct PhotoroomClient: Sendable {
         return request
     }
 
-    func blurredFinish(image: Data, apiKey: String) async throws -> Data {
+    func blurredFinish(image: Data, apiKey: String, relight: Bool = true) async throws -> Data {
         let expanded = try await send(Self.finishRequest(image: image, apiKey: apiKey, step: .expand))
         try Task.checkCancellation()
-        return try await send(Self.finishRequest(image: expanded, apiKey: apiKey, step: .blur))
+        return try await send(Self.finishRequest(image: expanded, apiKey: apiKey, step: .blur, relight: relight))
     }
 
     private func send(_ request: URLRequest) async throws -> Data {

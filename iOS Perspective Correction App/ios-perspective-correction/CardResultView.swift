@@ -20,12 +20,14 @@ struct CardResultView: View {
     @State private var rendered: CardResult?
     @State private var rendering = false
     @State private var quarterTurns = 0
-    @State private var blurSelected = false
+    @AppStorage(CapturePreferences.backgroundBlurKey) private var blurSelected = false
+    @AppStorage(CapturePreferences.relightKey) private var relight = true
     @State private var finished: FinishedCard?
-    @State private var finishedRequest: RenderRequest?
-    @State private var finishJob: UUID?
+    @State private var finishedRequest: FinishRequest?
+    @State private var finishRetry = UUID()
+    @State private var finishFailed = false
     @State private var finishing = false
-    private var activeFinish: FinishedCard? { finishedRequest == renderRequest ? finished : nil }
+    private var activeFinish: FinishedCard? { finishedRequest == FinishRequest(render: renderRequest, relight: relight) ? finished : nil }
     private var exportImage: CGImage { blurSelected ? (activeFinish?.image ?? displayed.corrected) : displayed.corrected }
     private var exportData: Data { blurSelected ? (activeFinish?.data ?? displayed.pngData) : displayed.pngData }
     private var canSave: Bool { canExport && !finishing && (!blurSelected || activeFinish != nil) }
@@ -41,6 +43,17 @@ struct CardResultView: View {
     private var previewRatio: Double { quarterTurns % 2 == 0 ? result.aspectRatio : 1 / result.aspectRatio }
     private struct RenderRequest: Equatable { let ratio: Double; let turns: Int }
     private var renderRequest: RenderRequest { RenderRequest(ratio: desiredRatio ?? previewRatio, turns: quarterTurns) }
+    private struct FinishRequest: Equatable {
+        let render: RenderRequest
+        let relight: Bool
+    }
+    private struct FinishTrigger: Equatable {
+        let request: FinishRequest?
+        let retry: UUID
+    }
+    private var finishTrigger: FinishTrigger {
+        FinishTrigger(request: blurSelected && canExport ? FinishRequest(render: renderRequest, relight: relight) : nil, retry: finishRetry)
+    }
     private var desiredRatio: Double? {
         switch mode {
         case .automatic: estimatedRatio?.widthOverHeight
@@ -126,13 +139,18 @@ struct CardResultView: View {
         }
         .task { if result.automaticRatio == nil { mode = .custom } }
         .onChange(of: blurSelected) { saved = false }
-        .task(id: finishJob) {
-            guard finishJob != nil else { return }
-            let request = renderRequest
-            finishing = true
+        .onChange(of: relight) { saved = false }
+        .task(id: finishTrigger) {
+            finishing = false
+            finishFailed = false
+            guard let request = finishTrigger.request, activeFinish == nil else { return }
             saved = false
             do {
-                let output = try await processor.blurredFinish(displayed, apiKey: apiKey)
+                // Coalesce proportion edits before incurring paid image-edit requests.
+                try await Task.sleep(for: .milliseconds(500))
+                try Task.checkCancellation()
+                finishing = true
+                let output = try await processor.blurredFinish(displayed, apiKey: apiKey, relight: request.relight)
                 try Task.checkCancellation()
                 finished = output
                 finishedRequest = request
@@ -140,6 +158,7 @@ struct CardResultView: View {
             } catch {
                 guard !Task.isCancelled else { return }
                 finishing = false
+                finishFailed = true
                 message = error.localizedDescription
             }
         }
@@ -170,20 +189,23 @@ struct CardResultView: View {
     private var finishControls: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Finish").font(.headline)
-            Picker("Finish", selection: $blurSelected) {
-                Text("Transparent").tag(false)
-                Text("Background blur").tag(true)
-            }.pickerStyle(.segmented).disabled(finishing || saving)
+            Text(blurSelected ? "Background blur" : "Transparent").font(.subheadline.bold())
+            Text("Change your saved finish style in Settings.").font(.caption).foregroundStyle(.secondary)
             if blurSelected {
-                Text("Keep the photo’s surroundings with a soft blur and balanced lighting.")
+                Text(relight ? "Soft background with balanced lighting." : "Soft background. Relight is off.")
                     .font(.subheadline).foregroundStyle(.secondary)
                 if finishing {
                     Label("Expanding and blurring background…", systemImage: "sparkles").font(.subheadline)
-                    Button("Cancel") { finishJob = nil; finishing = false }
+                    Button("Use transparent instead") { blurSelected = false }
                 } else if activeFinish == nil {
-                    Button("Apply background blur") { showingOriginal = false; finishing = true; finishJob = UUID() }
-                        .buttonStyle(.borderedProminent).disabled(!canExport || saving)
-                    Text("Uses your Photoroom API key. Two image edits per finish.")
+                    if finishFailed {
+                        Button("Retry background blur") { finishRetry = UUID() }
+                            .buttonStyle(.borderedProminent).disabled(!canExport || saving)
+                    } else {
+                        Text(canExport ? "Preparing background blur…" : "Choose valid proportions to apply your saved finish.")
+                            .font(.subheadline).foregroundStyle(.secondary)
+                    }
+                    Text("Two Photoroom image edits per finish. Changing proportions or rotation generates a new finish.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
             } else {
@@ -198,6 +220,7 @@ struct CardResultView: View {
         let data = exportData
         let savedRequest = renderRequest
         let savedBlur = blurSelected
+        let savedRelight = relight
         saving = true
         Task { @MainActor in
             defer { saving = false }
@@ -215,7 +238,7 @@ struct CardResultView: View {
                     let after = PHAssetCreationRequest.forAsset()
                     after.addResource(with: .photo, data: data, options: nil)
                 }
-                saved = renderRequest == savedRequest && blurSelected == savedBlur
+                saved = renderRequest == savedRequest && blurSelected == savedBlur && (!savedBlur || relight == savedRelight)
             } catch { message = error.localizedDescription }
         }
     }

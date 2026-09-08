@@ -60,6 +60,20 @@ import Testing
     }
 }
 
+
+@Test func disabledRelightOmitsOnlyLightingField() throws {
+    let image = Data("image-bytes".utf8)
+    for step in [PhotoroomClient.FinishStep.expand, .blur] {
+        let enabled = try PhotoroomClient.finishRequest(image: image, apiKey: "test-key", step: step, boundary: "finish")
+        let disabled = try PhotoroomClient.finishRequest(image: image, apiKey: "test-key", step: step, relight: false, boundary: "finish")
+        let body = String(decoding: disabled.httpBody!, as: UTF8.self)
+        let expected = String(decoding: enabled.httpBody!, as: UTF8.self).replacingOccurrences(of:
+            "\r\n--finish\r\nContent-Disposition: form-data; name=\"lighting.mode\"\r\n\r\nai.preserve-hue-and-saturation", with: "")
+        #expect(body == expected)
+        #expect(!body.contains("lighting.mode"))
+    }
+}
+
 private final class FinishProtocol: URLProtocol, @unchecked Sendable {
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
@@ -76,7 +90,9 @@ private final class FinishProtocol: URLProtocol, @unchecked Sendable {
         }
         let text = String(decoding: body, as: UTF8.self)
         let expanding = text.contains("expand.mode")
-        let valid = expanding ? text.contains("original-photo") : text.contains("expanded-photo")
+        let expectedRelight = request.value(forHTTPHeaderField: "X-Test-Relight") == "true"
+        let valid = expanding ? text.contains("original-photo") :
+            text.contains("expanded-photo") && text.contains("lighting.mode") == expectedRelight
         let response = HTTPURLResponse(url: request.url!, statusCode: valid ? 200 : 400, httpVersion: nil, headerFields: nil)!
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: Data((expanding ? "expanded-photo" : "finished-jpeg").utf8))
@@ -85,10 +101,11 @@ private final class FinishProtocol: URLProtocol, @unchecked Sendable {
     override func stopLoading() {}
 }
 
-@Test func blurUsesExpandedImageForSecondCall() async throws {
+@Test(arguments: [true, false]) func blurUsesExpandedImageForSecondCall(relight: Bool) async throws {
     let configuration = URLSessionConfiguration.ephemeral
     configuration.protocolClasses = [FinishProtocol.self]
+    configuration.httpAdditionalHeaders = ["X-Test-Relight": String(relight)]
     let client = PhotoroomClient(session: URLSession(configuration: configuration))
-    let result = try await client.blurredFinish(image: Data("original-photo".utf8), apiKey: "test-key")
+    let result = try await client.blurredFinish(image: Data("original-photo".utf8), apiKey: "test-key", relight: relight)
     #expect(result == Data("finished-jpeg".utf8))
 }

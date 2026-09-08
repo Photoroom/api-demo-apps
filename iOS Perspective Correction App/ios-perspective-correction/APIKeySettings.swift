@@ -40,6 +40,8 @@ struct APIKeySettings: View {
     @Binding var currentKey: String
     let onSave: (String) -> Void
     @AppStorage(CapturePreferences.automaticShutterKey) private var automaticShutter = true
+    @AppStorage(CapturePreferences.backgroundBlurKey) private var backgroundBlur = false
+    @AppStorage(CapturePreferences.relightKey) private var relight = true
     @State private var key = ""
     @State private var errorMessage: String?
     @State private var loadedKey = false
@@ -61,6 +63,17 @@ struct APIKeySettings: View {
                         .accessibilityIdentifier("automaticShutterSetting")
                 } header: { Text("Camera") } footer: {
                     Text("Capture automatically when the card is sharp. Turn off to use the shutter button. This preference saves immediately and is shared with the camera’s Auto toggle.")
+                }
+                Section {
+                    Picker("Finish style", selection: $backgroundBlur) {
+                        Text("Transparent").tag(false)
+                        Text("Background blur").tag(true)
+                    }.pickerStyle(.segmented).accessibilityIdentifier("finishStyleSetting")
+                    if backgroundBlur {
+                        Toggle("Relight", isOn: $relight).accessibilityIdentifier("relightSetting")
+                    }
+                } header: { Text("Finish") } footer: {
+                    Text("Saves immediately and applies automatically once proportions are ready. Transparent removes the background and saves a PNG. Background blur adds a soft background and saves a JPEG. Enable Relight to balance lighting too. The blurred finish uses two additional Photoroom API calls, with or without Relight.")
                 }
                 Section {
                     SecureField("Photoroom API key", text: $key)
