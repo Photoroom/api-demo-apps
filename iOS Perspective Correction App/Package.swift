@@ -4,7 +4,7 @@ let package = Package(
     name: "CardGeometry",
     products: [.library(name: "CardGeometry", targets: ["CardGeometry"])],
     targets: [
-        .target(name: "CardGeometry", path: "ios-perspective-correction/Processing", sources: ["CardGeometry.swift", "PhotoroomClient.swift", "CameraCalibration.swift", "AutoCaptureGate.swift"]),
+        .target(name: "CardGeometry", path: "ios-perspective-correction/Processing", sources: ["CardGeometry.swift", "PhotoroomClient.swift", "CameraCalibration.swift", "AutoCaptureGate.swift", "DewarpGeometry.swift"]),
         .testTarget(name: "CardGeometryTests", dependencies: ["CardGeometry"], path: "Tests/CardGeometryTests")
     ]
 )

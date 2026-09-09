@@ -1,4 +1,5 @@
 import AVFoundation
+import ImageIO
 import PhotosUI
 import SwiftUI
 
@@ -16,6 +17,9 @@ struct ContentView: View {
     @State private var errorMessage: String?
     @State private var cameraDenied = false
     private let processor = CardProcessor()
+#if DEBUG
+    @State private var processingFixture: CardResult?
+#endif
 
     var body: some View {
         NavigationStack {
@@ -23,8 +27,8 @@ struct ContentView: View {
                 Color(uiColor: .systemGroupedBackground).ignoresSafeArea()
                 if let result {
                     CardResultView(result: result, apiKey: apiKey) { self.result = nil; input = nil }
-                } else if input != nil {
-                    ProcessingView { input = nil }
+                } else if let input {
+                    ProcessingView(photo: input.preview) { self.input = nil }
                 } else {
                     CaptureHome(onCamera: openCamera, onSamples: { if apiKey.isEmpty { settingsPresented = true } else { samplesPresented = true } }, selectedPhoto: $selectedPhoto)
                 }
@@ -48,9 +52,19 @@ struct ContentView: View {
             }
             .task {
 #if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("--verify-processing") {
+                    do {
+                        let fixture = try await ProportionPreviewFixture.make(calibrated: false, tilted: true)
+                        processingFixture = fixture
+                        if let data = UIImage(cgImage: fixture.original).pngData() {
+                            input = PhotoInput(data: data, calibration: nil)
+                        }
+                    } catch { errorMessage = error.localizedDescription }
+                    return
+                }
                 if ProcessInfo.processInfo.arguments.contains("--verify-camera-ui") { cameraPresented = true; return }
-                if ProcessInfo.processInfo.arguments.contains("--verify-proportions") {
-                    do { result = try await ProportionPreviewFixture.make(calibrated: !ProcessInfo.processInfo.arguments.contains("--without-calibration")) }
+                if ProcessInfo.processInfo.arguments.contains("--verify-proportions") || ProcessInfo.processInfo.arguments.contains("--verify-dewarp") {
+                    do { result = try await ProportionPreviewFixture.make(calibrated: !ProcessInfo.processInfo.arguments.contains("--without-calibration"), tilted: ProcessInfo.processInfo.arguments.contains("--verify-dewarp")) }
                     catch { errorMessage = error.localizedDescription }
                     return
                 }
@@ -75,6 +89,14 @@ struct ContentView: View {
             .task(id: input?.id) {
                 guard let input else { return }
                 do {
+#if DEBUG
+                    if let processingFixture, ProcessInfo.processInfo.arguments.contains("--verify-processing") {
+                        try await Task.sleep(for: .seconds(3))
+                        try Task.checkCancellation()
+                        result = processingFixture
+                        return
+                    }
+#endif
                     let output = try await processor.process(input.data, apiKey: apiKey, calibration: input.calibration)
                     try Task.checkCancellation()
                     result = output
@@ -126,6 +148,21 @@ private struct PhotoInput: Identifiable {
     let id = UUID()
     let data: Data
     let calibration: CameraCalibration?
+    let preview: UIImage?
+
+    init(data: Data, calibration: CameraCalibration?) {
+        self.data = data
+        self.calibration = calibration
+        // Decode a bounded, orientation-correct preview once, rather than on each view update.
+        if let source = CGImageSourceCreateWithData(data as CFData, nil),
+           let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [
+                kCGImageSourceCreateThumbnailFromImageAlways: true,
+                kCGImageSourceCreateThumbnailWithTransform: true,
+                kCGImageSourceThumbnailMaxPixelSize: 1200
+           ] as CFDictionary) {
+            preview = UIImage(cgImage: image)
+        } else { preview = nil }
+    }
 }
 
 private struct CaptureHome: View {
@@ -213,15 +250,32 @@ private struct MiniCard: View {
 }
 
 private struct ProcessingView: View {
+    let photo: UIImage?
     let cancel: () -> Void
     var body: some View {
-        VStack(spacing: 20) {
-            ProgressView().controlSize(.large)
-            Text("Preparing your card").font(.title2.bold())
-            Text("Getting the Photoroom mask, removing the background, and straightening the image.")
-                .foregroundStyle(.secondary).multilineTextAlignment(.center)
-            Button("Cancel", role: .cancel, action: cancel).buttonStyle(.bordered)
-        }.padding(32)
+        ScrollView {
+            VStack(spacing: 22) {
+                VStack(spacing: 8) {
+                    Label("Preparing your card", systemImage: "sparkles").font(.title2.bold()).foregroundStyle(cardAccent)
+                    Text("Finding the edges and straightening the image.")
+                        .foregroundStyle(.secondary).lineLimit(1).minimumScaleFactor(0.8)
+                }
+                Picker("Image comparison", selection: .constant(true)) {
+                    Text("Edited").tag(false)
+                    Text("Original").tag(true)
+                }.pickerStyle(.segmented).disabled(true)
+                ZStack {
+                    if let photo {
+                        Image(uiImage: photo).resizable().scaledToFit().opacity(0.75)
+                            .accessibilityLabel("Captured card being processed")
+                    }
+                    ProgressView().padding(14).background(.regularMaterial, in: Capsule())
+                        .accessibilityLabel("Correcting perspective")
+                }.frame(maxWidth: .infinity).frame(height: 320).padding(20)
+                    .background(.background, in: RoundedRectangle(cornerRadius: 24))
+                Button("Cancel", role: .cancel, action: cancel).buttonStyle(.bordered)
+            }.padding(24)
+        }
     }
 }
 

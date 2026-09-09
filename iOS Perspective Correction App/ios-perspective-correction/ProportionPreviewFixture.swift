@@ -6,7 +6,7 @@ import ImageIO
 
 /// Deterministic UI fixture for Simulator checks; never contacts Photoroom or reads credentials.
 enum ProportionPreviewFixture {
-    static func make(calibrated: Bool) async throws -> CardResult {
+    static func make(calibrated: Bool, tilted: Bool = false) async throws -> CardResult {
         let width = 600, height = 800
         let rect = CGRect(x: 180, y: 190, width: 240, height: 420)
         func draw(mask: Bool) throws -> CGImage {
@@ -14,6 +14,12 @@ enum ProportionPreviewFixture {
                                          space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { throw CardError.invalidImage }
             canvas.setFillColor(CGColor(gray: mask ? 0 : 0.8, alpha: 1))
             canvas.fill(CGRect(x: 0, y: 0, width: width, height: height))
+            if tilted {
+                canvas.translateBy(x: 300, y: 400)
+                canvas.rotate(by: 0.3)
+                canvas.concatenate(CGAffineTransform(a: 1, b: 0, c: 0.18, d: 0.85, tx: 0, ty: 0))
+                canvas.translateBy(x: -300, y: -400)
+            }
             canvas.setFillColor(mask ? CGColor(gray: 1, alpha: 1) : CGColor(red: 0.3, green: 0.2, blue: 0.9, alpha: 1))
             canvas.addPath(CGPath(roundedRect: rect, cornerWidth: 18, cornerHeight: 18, transform: nil))
             canvas.fillPath()

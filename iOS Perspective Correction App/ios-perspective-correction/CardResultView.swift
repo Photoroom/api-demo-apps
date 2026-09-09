@@ -11,6 +11,7 @@ struct CardResultView: View {
     let onNewPhoto: () -> Void
     @State private var showingOriginal = false
     @State private var comparison: CardComparison?
+    @State private var animationReplay = UUID()
     @State private var saving = false
     @State private var saved = false
     @State private var message: String?
@@ -85,8 +86,8 @@ struct CardResultView: View {
                 Button {
                     comparison = CardComparison(original: result.originalPreview, edited: exportImage, showingOriginal: showingOriginal)
                 } label: {
-                    Image(decorative: showingOriginal ? result.originalPreview : exportImage, scale: 1)
-                        .resizable().scaledToFit().frame(maxWidth: .infinity).frame(height: 320)
+                    DewarpPreview(result: displayed, edited: exportImage, showingOriginal: showingOriginal, replay: animationReplay)
+                        .frame(maxWidth: .infinity).frame(height: 320)
                         .padding(20)
                         .background(.background, in: RoundedRectangle(cornerRadius: 24))
                         .overlay { if rendering || finishing { ProgressView().padding().background(.regularMaterial, in: Capsule()) } }
@@ -99,6 +100,12 @@ struct CardResultView: View {
                     .accessibilityLabel("View photos full screen")
                     .accessibilityHint("Compare original and edited photos, with pinch to zoom")
                 HStack {
+                    Button {
+                        showingOriginal = false
+                        animationReplay = UUID()
+                    } label: { Label("Replay", systemImage: "play.circle") }
+                    .buttonStyle(.bordered).disabled(rendering || finishing)
+                    .accessibilityLabel("Replay perspective correction")
                     Spacer()
                     Button {
                         quarterTurns = (quarterTurns + 1) % 4
